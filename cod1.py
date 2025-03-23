@@ -8,12 +8,24 @@ from sklearn.neighbors import KNeighborsClassifier
 
 folder_path = "C:/Users/PRAKHAR MEHROTRA/Documents"
 
-def extract_text_from_pdf(file_path):
-    text = ""
-    with pdfplumber.open(file_path) as pdf:
-        for page in pdf.pages:
-            text += page.extract_text() + "\n"
-    return text
+def extract_text(file_path):
+    try:
+        if file_path.endswith(".pdf"):
+            with pdfplumber.open(file_path) as pdf:
+                return "\n".join([page.extract_text() for page in pdf.pages if page.extract_text()])
+        elif file_path.endswith(".docx"):
+            try:
+                doc = Document(file_path)
+                return "\n".join([para.text for para in doc.paragraphs])
+            except Exception as e:
+                st.error(f"⚠️ Error reading {file_path}: {e}")
+                return ""  
+        elif file_path.endswith(".txt"):
+            with open(file_path, "r", encoding="utf-8") as file:
+                return file.read()
+    except Exception as e:
+        st.error(f"⚠️ Error processing {file_path}: {e}")
+        return ""
 
 def extract_text_from_docx(file_path):
     doc = Document(file_path)
@@ -42,25 +54,17 @@ model.fit(X_train, train_labels)
 
 
 def categorize_file(file_path):
-    if file_path.endswith(".pdf"):
-        text = extract_text_from_pdf(file_path)
-    elif file_path.endswith(".docx"):
-        text = extract_text_from_docx(file_path)
-    elif file_path.endswith(".txt"):
-        text = extract_text_from_txt(file_path)
-    else:
-        return "Uncategorized"
-
-    if text.strip():
-        X_test = vectorizer.transform([text])
-        return model.predict(X_test)[0]
-    
-    return "Uncategorized"
+    text = extract_text(file_path)
+    return model.predict(vectorizer.transform([text]))[0] if text.strip() else "Uncategorized"
 
 
-st.title("📁 AI-Powered File Organizer")
-st.write("Click the button below to organize files.")
+st.set_page_config(page_title="AI File Organizer", layout="centered", page_icon="📁")
+st.title("📂 AI-Powered File Organizer")
+st.write("This tool categorizes and organizes files into relevant folders.")
 
+st.subheader("📋 Files Before Organization:")
+files = os.listdir(folder_path)
+st.write(", ".join(files) if files else "No files found.")
 if st.button("🗂️ Organize Files"):
     files = os.listdir(folder_path)
 
