@@ -103,3 +103,22 @@ if st.button("🗂️ Organize Files"):
                 st.write(", ".join(category_files))
 
     st.success("✅ File organization complete!")
+if st.button("🔄 Restore Files"):
+    moved_back_files = []
+    
+    for category in all_categories:
+        category_path = os.path.join(folder_path, category)
+        if os.path.exists(category_path):
+            for file in os.listdir(category_path):
+                src = os.path.join(category_path, file)
+                dest = os.path.join(folder_path, file)
+                shutil.move(src, dest)
+                moved_back_files.append(f"🔄 {file} restored to main folder")
+    if moved_back_files:
+        st.subheader("📂 Restored Files:")
+        for restored_file in moved_back_files:
+            st.success(restored_file)
+    else:
+        st.warning("No files were restored. The main folder may already be empty.")
+
+    st.success("✅ Files have been restored to the main folder!")
