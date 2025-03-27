@@ -2,6 +2,8 @@ import os
 import shutil
 import streamlit as st
 import pdfplumber
+import pytesseract
+from pdf2image import convert_from_path
 from docx import Document
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import KNeighborsClassifier
@@ -26,7 +28,10 @@ def extract_text(file_path):
     except Exception as e:
         st.error(f"⚠️ Error processing {file_path}: {e}")
         return ""
-
+def extract_text_with_ocr(pdf_path) :
+    images= convert_from_path(pdf_path)
+    text = "Xn". join([para.text for para in doc.paragraphs if para.text] )
+    return text if text else ""
 categories = {
     "Finance & Accounting": ["invoice", "budget", "tax", "bank", "salary", "account", "payroll", "statement", "financial", "transaction"],
     "Legal & Compliance": ["contract", "agreement", "law", "policy", "terms", "privacy", "compliance", "regulation", "dispute"],
@@ -114,6 +119,7 @@ if st.button("🔄 Restore Files"):
                 dest = os.path.join(folder_path, file)
                 shutil.move(src, dest)
                 moved_back_files.append(f"🔄 {file} restored to main folder")
+            shutil.rmtree(category_path)
     if moved_back_files:
         st.subheader("📂 Restored Files:")
         for restored_file in moved_back_files:
@@ -122,3 +128,4 @@ if st.button("🔄 Restore Files"):
         st.warning("No files were restored. The main folder may already be empty.")
 
     st.success("✅ Files have been restored to the main folder!")
+    
