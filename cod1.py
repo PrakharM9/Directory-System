@@ -8,20 +8,23 @@ from docx import Document
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import KNeighborsClassifier
 
-folder_path = "C:/Users/PRAKHAR MEHROTRA/Documents"
+folder_path = "C:\Users\91956\Documents\CSE 316 Project"
+import pdfplumber
+from docx import Doucument 
 
 def extract_text(file_path):
     try:
         if file_path.endswith(".pdf"):
             with pdfplumber.open(file_path) as pdf:
-                return "\n".join([page.extract_text() for page in pdf.pages if page.extract_text()])
+                text = "\n".join([page.extract_text() for page in pdf.pages if page.extract_text()])
+                if not text.strip():
+                    text = extract_text_with_orc(file_path)
+                return text
         elif file_path.endswith(".docx"):
-            try:
                 doc = Document(file_path)
-                return "\n".join([para.text for para in doc.paragraphs])
-            except Exception as e:
-                st.error(f"⚠️ Error reading {file_path}: {e}")
-                return ""  
+                text = "\n".join([para.text for para in doc.paragraphs])
+                return text
+         
         elif file_path.endswith(".txt"):
             with open(file_path, "r", encoding="utf-8") as file:
                 return file.read()
@@ -41,13 +44,14 @@ categories = {
     "Marketing & Sales": ["campaign", "advertisement", "branding", "promotion", "lead", "customer", "sales", "SEO", "market", "analytics"],
     "IT & Software Development": ["code", "programming", "debug", "script", "repository", "framework", "database", "server", "API", "deployment"],
     "General Documents": ["report", "document", "memo", "summary", "meeting", "minutes", "presentation", "notes"],
+    "Identity Documents": ["passport", "aadhaar", "license", "pan", "id card"],
 }
 
 train_texts = [" ".join(keywords) for keywords in categories.values()]
 train_labels = list(categories.keys())
 vectorizer = TfidfVectorizer()
 X_train = vectorizer.fit_transform(train_texts)
-model = KNeighborsClassifier(n_neighbors=1)
+model = KNeighborsClassifier(n_neighbors=3)
 model.fit(X_train, train_labels)
 
 
