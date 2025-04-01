@@ -8,9 +8,7 @@ from docx import Document
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import KNeighborsClassifier
 
-folder_path = "C:\Users\91956\Documents\CSE 316 Project"
-import pdfplumber
-from docx import Doucument 
+folder_path = "C:\Users\Amanjot Singh\Downloads\osproject files download"
 
 def extract_text(file_path):
     try:
@@ -19,7 +17,7 @@ def extract_text(file_path):
                 text = "\n".join([page.extract_text() for page in pdf.pages if page.extract_text()])
                 if not text.strip():
                     text = extract_text_with_orc(file_path)
-                return text
+                return text if text.strip()  else "No text xtracted"
         elif file_path.endswith(".docx"):
                 doc = Document(file_path)
                 text = "\n".join([para.text for para in doc.paragraphs])
@@ -32,9 +30,15 @@ def extract_text(file_path):
         st.error(f"⚠️ Error processing {file_path}: {e}")
         return ""
 def extract_text_with_ocr(pdf_path) :
-    images= convert_from_path(pdf_path)
-    text = "Xn". join([para.text for para in doc.paragraphs if para.text] )
-    return text if text else ""
+    try:
+        images= convert_from_path(pdf_path)
+        text = "\n".join([pytesseract.image_to_string(img)
+        for img in images])
+        return text if text.strip() else "No text detected"
+    except Exception as e:
+        print(f"OCR extraction failed for {pdf_path}: {e}")
+        return "OCR extraction failed"
+
 categories = {
     "Finance & Accounting": ["invoice", "budget", "tax", "bank", "salary", "account", "payroll", "statement", "financial", "transaction"],
     "Legal & Compliance": ["contract", "agreement", "law", "policy", "terms", "privacy", "compliance", "regulation", "dispute"],
@@ -45,6 +49,8 @@ categories = {
     "IT & Software Development": ["code", "programming", "debug", "script", "repository", "framework", "database", "server", "API", "deployment"],
     "General Documents": ["report", "document", "memo", "summary", "meeting", "minutes", "presentation", "notes"],
     "Identity Documents": ["passport", "aadhaar", "license", "pan", "id card"],
+    "Personal Documents": ["certificate", "marksheet", "migration", "transfer", "domicile", "identity", "aadhaar", "voter", "passport","driving license",
+    "birth certificate","marriage certificate","degree","diploma"],
 }
 
 train_texts = [" ".join(keywords) for keywords in categories.values()]
@@ -73,6 +79,19 @@ files = os.listdir(folder_path)
 st.write(", ".join(files) if files else "No files found.")
 all_categories = list(categories.keys()) + ["Images", "Videos", "Uncategorized"]
 
+if st.button("🔄 Restore Files"):
+    moved_back_files = []
+    for category in all_categories:
+        category_path = os.path.join(folder_path, category)
+        if os.path.exists(category_path):
+            for file in os.listdir(category_path):
+                shutil.move(os.path.join(category_path, file), os.path.join(folder_path, file))
+                moved_back_files.append(f"🔄 {file} restored to main folder")
+            shutil.rmtree(category_path)
+    if moved_back_files:
+        for restored_file in moved_back_files:
+            st.success(restored_file)
+    st.success("✅ Files have been restored to the main folder!")
 if st.button("🗂️ Organize Files"):
     for category in all_categories:
         os.makedirs(os.path.join(folder_path, category), exist_ok=True)
@@ -112,24 +131,19 @@ if st.button("🗂️ Organize Files"):
                 st.write(", ".join(category_files))
 
     st.success("✅ File organization complete!")
+
 if st.button("🔄 Restore Files"):
     moved_back_files = []
-    
     for category in all_categories:
         category_path = os.path.join(folder_path, category)
         if os.path.exists(category_path):
             for file in os.listdir(category_path):
-                src = os.path.join(category_path, file)
-                dest = os.path.join(folder_path, file)
-                shutil.move(src, dest)
+                shutil.move(os.path.join(category_path, file), os.path.join(folder_path, file))
                 moved_back_files.append(f"🔄 {file} restored to main folder")
             shutil.rmtree(category_path)
     if moved_back_files:
-        st.subheader("📂 Restored Files:")
         for restored_file in moved_back_files:
             st.success(restored_file)
-    else:
-        st.warning("No files were restored. The main folder may already be empty.")
-
     st.success("✅ Files have been restored to the main folder!")
+
     
