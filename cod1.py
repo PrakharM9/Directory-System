@@ -56,12 +56,33 @@ model.fit(X_train, train_labels)
 
 
 def categorize_file(file_path):
+    filename = os.path.basename(file_path).lower()
+    if any(term in filename for term in ["prakhar", "marksheet", "pan", "domicile", "ews", "migration", "10th", "12th"]):
+        return "Personal Documents"
+        
     text_content = extract_text(file_path)
-    print(f"Extracted text: {repr(text_content)}")
-    if text_content is None:
-        text_content = ""
-    clean_text = text_content.strip()  
-    return model.predict(vectorizer.transform([clean_text]))[0] if clean_text else "Uncategorized"
+    if not text_content or text_content == "No text extracted":
+        if any(term in filename for term in ["prakhar", "marksheet", "pan"]):
+            return "Personal Documents"
+        return "Uncategorized"
+    
+    transformed_text = vectorizer.transform([text_content])
+    predicted_category = model.predict(transformed_text)[0]
+    distances, indices = model.kneighbors(transformed_text, n_neighbors=3)
+    avg_distance = distances.mean()
+    if avg_distance > 1.5:
+        return "Uncategorized"
+    personal_keywords = ["marksheet", "migration", "certificate", "aadhaar", "pan", 
+                        "domicile", "passport", "prakhar", "10th", "12th", "ews"]
+    
+    if any(keyword in text_content.lower() for keyword in personal_keywords) or \
+       any(keyword in filename for keyword in personal_keywords):
+        return "Personal Documents"
+    finance_keywords = ["tax", "bank", "salary", "account", "transaction"]
+    if predicted_category == "Finance & Accounting" and not any(word in text_content.lower() for word in finance_keywords):
+        return "Personal Documents"
+    
+    return predicted_category
 
 
 st.set_page_config(page_title="AI File Organizer", layout="centered", page_icon="📁")
@@ -112,9 +133,29 @@ if st.button("🗂️ Organize Files"):
                 st.write(", ".join(category_files))
 
     st.success("✅ File organization complete!")
+
 if st.button("🔄 Restore Files"):
-    moved_back_files = []
+    st.write("🔄 Collecting all files from subfolders...")
+    for root, _, files in os.walk(folder_path, topdown=False):
+        if root == folder_path:
+            continue
+        for file in files:
+            old_path = os.path.join(root, file)
+            new_path = os.path.join(folder_path, file)
+            # Avoid overwriting files with the same name
+            if os.path.exists(new_path):
+                base, ext = os.path.splitext(file)
+                new_path = os.path.join(folder_path, f"{base}_copy{ext}")
+            shutil.move(old_path, new_path)
+    for root, dirs, _ in os.walk(folder_path, topdown=False):
+        for d in dirs:
+            dir_path = os.path.join(root, d)
+            if not os.listdir(dir_path):
+                os.rmdir(dir_path)
     
+    st.success("✅ All files extracted from subfolders!")
+
+    moved_back_files = []
     for category in all_categories:
         category_path = os.path.join(folder_path, category)
         if os.path.exists(category_path):
