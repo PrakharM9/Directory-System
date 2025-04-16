@@ -8,7 +8,7 @@ from docx import Document
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import KNeighborsClassifier
 
-folder_path = "C:/Users/PRAKHAR MEHROTRA/Desktop/testing"
+folder_path = "C:/Users/PRAKHAR MEHROTRA/Documents/PRAKHAR DOCUMENTS"
 
 def extract_text(file_path):
     try:
@@ -167,19 +167,6 @@ files = os.listdir(folder_path)
 st.write(", ".join(files) if files else "No files found.")
 all_categories = list(categories.keys()) + ["Images", "Videos", "Uncategorized"]
 
-if st.button("🔄 Restore Files"):
-    moved_back_files = []
-    for category in all_categories:
-        category_path = os.path.join(folder_path, category)
-        if os.path.exists(category_path):
-            for file in os.listdir(category_path):
-                shutil.move(os.path.join(category_path, file), os.path.join(folder_path, file))
-                moved_back_files.append(f"🔄 {file} restored to main folder")
-            shutil.rmtree(category_path)
-    if moved_back_files:
-        for restored_file in moved_back_files:
-            st.success(restored_file)
-    st.success("✅ Files have been restored to the main folder!")
 if st.button("🗂️ Organize Files"):
     for category in all_categories:
         os.makedirs(os.path.join(folder_path, category), exist_ok=True)
