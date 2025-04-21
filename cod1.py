@@ -7,8 +7,9 @@ from pdf2image import convert_from_path
 from docx import Document
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import KNeighborsClassifier
+import pandas as pd
 
-folder_path = "C:/Users/PRAKHAR MEHROTRA/Documents/PRAKHAR DOCUMENTS"
+folder_path ="C:/Users/PRAKHAR MEHROTRA/Desktop/Testing data"
 
 def extract_text(file_path):
     try:
@@ -26,6 +27,12 @@ def extract_text(file_path):
         elif file_path.endswith(".txt"):
             with open(file_path, "r", encoding="utf-8") as file:
                 return file.read()
+        elif file_path.endswith((".xls", ".xlsx")):
+                df = pd.read_excel(file_path, sheet_name=None) 
+                text = ""
+                for sheet in df.values():
+                    text += sheet.astype(str).to_string()
+                return text
     except Exception as e:
         st.error(f"⚠️ Error processing {file_path}: {e}")
         return ""
@@ -131,31 +138,19 @@ model.fit(X_train, train_labels)
 
 def categorize_file(file_path):
     filename = os.path.basename(file_path).lower()
-    if any(term in filename for term in ["prakhar", "marksheet", "pan", "domicile", "ews", "migration", "10th", "12th"]):
-        return "Personal Documents"
-        
     text_content = extract_text(file_path)
+
     if not text_content or text_content == "No text extracted":
-        if any(term in filename for term in ["prakhar", "marksheet", "pan"]):
-            return "Personal Documents"
         return "Uncategorized"
-    
+
     transformed_text = vectorizer.transform([text_content])
     predicted_category = model.predict(transformed_text)[0]
-    distances, indices = model.kneighbors(transformed_text, n_neighbors=3)
+    distances, _ = model.kneighbors(transformed_text, n_neighbors=3)
     avg_distance = distances.mean()
-    if avg_distance > 1.5:
+
+    if avg_distance > 1.2:
         return "Uncategorized"
-    personal_keywords = ["marksheet", "migration", "certificate", "aadhaar", "pan", 
-                        "domicile", "passport", "prakhar", "10th", "12th", "ews"]
-    
-    if any(keyword in text_content.lower() for keyword in personal_keywords) or \
-       any(keyword in filename for keyword in personal_keywords):
-        return "Personal Documents"
-    finance_keywords = ["tax", "bank", "salary", "account", "transaction"]
-    if predicted_category == "Finance & Accounting" and not any(word in text_content.lower() for word in finance_keywords):
-        return "Personal Documents"
-    
+
     return predicted_category
 
 st.set_page_config(page_title="AI File Organizer", layout="centered", page_icon="📁")
@@ -182,7 +177,7 @@ if st.button("🗂️ Organize Files"):
                 category = "Images"
             elif file_ext in ["mp4", "avi", "mkv"]:
                 category = "Videos"
-            elif file_ext in ["pdf", "docx", "txt"]:
+            elif file_ext in ["pdf", "docx", "txt""xls", "xlsx"]:
                 category = categorize_file(file_path)
             else:
                 category = "Uncategorized"
